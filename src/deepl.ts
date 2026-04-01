@@ -19,9 +19,11 @@ export class DeepLApi {
 
   async translate(
     text: string,
-    targetLanguage: string
+    targetLanguage: string,
+    retries: number = 2
   ): Promise<string | null> {
-    return this.axiosInstance({
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const result = await this.axiosInstance({
       method: "POST",
       url: "/translate",
       data: {
@@ -120,11 +122,19 @@ export class DeepLApi {
           return ":x: Failed to translate it due to an unexpected response from DeepL API";
         }
       })
-      .catch((error) => {
+      .catch(async (error) => {
+        if (attempt < retries) {
+          this.logger.warn(`Retrying translation (attempt ${attempt + 1}): ${error}`);
+          await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
+          return null;
+        }
         this.logger.error(
           `Failed to translate - text: ${text} error: ${error}`
         );
         return `:x: Failed to translate it due to ${error}`;
       });
+      if (result !== null) return result;
+    }
+    return `:x: Failed to translate it after ${retries + 1} attempts`;
   }
 }

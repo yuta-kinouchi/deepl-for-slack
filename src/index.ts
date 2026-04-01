@@ -24,6 +24,8 @@ const app = new App({
   logger,
   token: process.env.SLACK_BOT_TOKEN!!,
   signingSecret: process.env.SLACK_SIGNING_SECRET!!,
+  socketMode: true,
+  appToken: process.env.SLACK_APP_TOKEN!!,
   deferInitialization: true,
 });
 middleware.enableAll(app);
@@ -93,6 +95,9 @@ app.event("reaction_added", async ({ body, client }) => {
   );
   if (replies.messages && replies.messages.length > 0) {
     const message = replies.messages[0];
+    if (message.bot_id) {
+      return;
+    }
     if (message.text) {
       const translatedText = await deepL.translate(message.text, lang);
       if (translatedText == null) {
